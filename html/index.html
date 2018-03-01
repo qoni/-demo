@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+        ul li{list-style: none;}
+        #nav li a{float:left;min-width:50px;text-align: center;color:deepskyblue;text-decoration: none;}
+        #nav li.disabled a{
+            color:#999;
+        }
+    </style>
+</head>
+<body>
+<p>欢迎您回来:<span class="uname"></span></p>
+<p class="unset"><a href="javascript:;">退出登录</a></p>
+<p><a href="sendMessage.html">去留言吧</a></p>
+<div class="waiting" style="display:none;">正在加载中</div>
+<ul class="messageBox">
+    <!--<li>-->
+        <!--<p>标题:</p>-->
+        <!--<p>内容:</p>-->
+        <!--<p>时间:</p>-->
+        <!--<p>-->
+            <!--<a href="javascript:;">编辑</a>-->
+            <!--<a href="javascript:;">删除</a>-->
+        <!--</p>-->
+    <!--</li>-->
+</ul>
+<div id="pagination">
+    <ul id="nav">
+        <!--<li class="disabled"><a href="javascript:;">上一页</a></li>-->
+        <!--<li><a href="javascript:;" class="disabled">1</a></li>-->
+        <!--<li><a href="javascript:;">2</a></li>-->
+        <!--<li><a href="javascript:;">3</a></li>-->
+        <!--<li><a href="javascript:;">下一页</a></li>-->
+    </ul>
+</div>
+<script src="js/jquery-2.0.0.min.js"></script>
+<script src="js/jquery.cookie.js"></script>
+<script>
+    $(function () {
+        var ck=$.cookie("username");
+        var currentPage=0;
+        var datas=[];
+        var pageCount,pageSize,pages;
+        if(!ck){
+            alert("请登录");
+            location.href="login.html";
+        }else{
+            $(".uname").html(ck);
+            returnMessage(0);
+            $(document).on("click","#nav li a",function () {
+                var pg=$(this).attr("pg");
+                if(pg){
+                    returnMessage(pg);
+                }
+            });
+        }
+        function returnMessage(index) {
+            $.ajax({
+                type:"get",
+                url:"../php/index.php?c=Message&a=returnMessage",
+                data:{"page":index},
+                dataType:"json",
+                beforeSend:function () {
+                    $(".waiting").css("display","block");
+                },
+                success:function (data) {
+                    $(".waiting").css("display","none");
+                    if(data.code=="403"){
+                        alert(data.message);
+                    }else if(data.code=="200"){
+                        console.log(data.data);
+                        datas=data.data.data;
+                        pageCount=data.data.count;
+                        pageSize=data.data.limit;
+                        pages=data.data.pages;
+                        if(datas==""&&pageCount>0){
+                            currentPage=currentPage-1;
+                            returnMessage(currentPage);
+                        }else{
+                            currentPage=index;
+                        }
+                        var html="";
+                        $.each(datas,function (index,item) {
+                            html+='<li>';
+                            html+='<p>标题:'+item.title+'</p>';
+                            html+='<p>内容:'+item.message+'</p>';
+                            html+='<p>';
+                            for(var i=0;i<item.photoUrl.split(',').length;i++){
+                                html+='<img src="'+item.photoUrl.split(',')[i]+'"/>';
+                            }
+                            html+='</p>';
+                            html+='<p>时间:'+item.date+'</p>';
+                            html+='<p class="edit"  mid="'+item.id+'"><a href="javascript:;">编辑</a></p>';
+                            html+='<p class="delete" mid="'+item.id+'"><a href="javascript:;">删除</a></p>';
+                            html+='<p class="dz" mid="'+item.id+'"><a href="javascript:;">赞<span class="zz">'+item.dz+'</span></a></p>';
+                            html+='</li>';
+                        });
+                        $(".messageBox").html(html);
+                        showPage();
+                    }
+                }
+            })
+        }
+//        function showPage() {
+//            var lis=[];
+//            console.log(pages);
+//            if(currentPage==0){
+//                lis.push('<li class="disabled"><a href="javascript:;">上一页</a></li>');
+//            }else{
+//                lis.push('<li><a href="javascript:returnMessage('+(currentPage-1)+');">上一页</a></li>');
+//            }
+//            for(var j=0;j<pages;j++){
+//                if(j==currentPage){
+//                    lis.push('<li class="disabled"><a href="javascript:;">'+(j+1)+'</a></li>');
+//                }else{
+//                    lis.push('<li><a href="javascript:returnMessage('+j+');">'+(j+1)+'</a></li>');
+//                }
+//            }
+//            if(currentPage==pages-1){
+//                lis.push('<li class="disabled"><a href="javascript:;">下一页</a></li>');
+//            }else{
+//                lis.push('<li><a href="javascript:returnMessage('+(currentPage+1)+');">下一页</a></li>');
+//            }
+//            lis=lis.join("");
+//            console.log(lis);
+//            $("#nav").html(lis);
+//        }
+        function showPage() {
+            var lis=[];
+            if(pageCount>pageSize){
+                if(currentPage==0){
+                    lis.push('<li class="disabled"><a href="javascript:;">上一页</a></li>');
+                }else{
+                    lis.push('<li><a href="javascript:;" pg="'+(parseInt(currentPage)-1)+'">上一页</a></li>');
+                }
+                for(var j=0;j<pages;j++){
+                    if(j==currentPage){
+                        lis.push('<li class="disabled"><a href="javascript:;">'+(j+1)+'</a></li>');
+                    }else{
+                        lis.push('<li><a href="javascript:;"  pg="'+j+'">'+(j+1)+'</a></li>');
+                    }
+                }
+                if(currentPage==pages-1){
+                    lis.push('<li class="disabled"><a href="javascript:;">下一页</a></li>');
+                }else{
+                    lis.push('<li><a href="javascript:;" pg="'+(parseInt(currentPage)+1)+'">下一页</a></li>');
+                }
+                lis=lis.join("");
+            }
+
+            console.log(lis);
+            $("#nav").html(lis);
+        }
+        $(".unset").on("click",function () {
+            $.ajax({
+                type:"post",
+                url:"../php/index.php?c=Login&a=logout",
+                dataType:"json",
+                success:function (data) {
+                    if(data.code=="200"){
+                        $.removeCookie("username");
+                        alert(data.message);
+                        window.location.href="login.html";
+                    }
+                }
+            })
+        });
+
+        $(document).on("click",".delete",function () {
+            var mid=$(this).attr("mid");
+            console.log(mid);
+            $(this).parent().remove();
+            $.ajax({
+                type:"post",
+                url:"../php/index.php?c=Message&a=deleteMessage",
+                dataType:"json",
+                data:{mid:mid},
+                success:function (data) {
+                    if(data.code=="403"){
+                        alert(data.message);
+                    }else if(data.code=="200"){
+                        returnMessage(currentPage);
+                        console.log(datas);
+                        console.log(data.message);
+                    }
+                }
+            })
+        });
+        $(document).on("click",".edit",function () {
+            var mid=$(this).attr("mid");
+            var imgSrc=[];
+            var imgSrcLen=$(this).siblings().children("img");
+            for(var i=0;i<imgSrcLen.length;i++){
+                imgSrc.push($(imgSrcLen[i]).attr("src"));
+            }
+            console.log(imgSrc);
+            localStorage.setItem("mid",mid);
+            localStorage.setItem("imgSrc",imgSrc);
+            location.href="edit.html";
+        });
+        $(document).on("click",".dz",function () {
+            var mid=$(this).attr("mid");
+            console.log(mid);
+            var num=$(".zz",this).html();
+            $.ajax({
+                type:"post",
+                url:"../php/index.php?c=Message&a=dzMessage",
+                dataType:"json",
+                data:{mid:mid},
+                success:function (data) {
+                    console.log(data);
+                    if(data.code=="200"){
+                        num++;
+                    }else if(data.code=="202"){
+                        num--;
+                    }
+                    $(".zz",this).html(num);
+                }.bind(this)
+            })
+        });
+    });
+</script>
+</body>
+</html>

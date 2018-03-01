@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<form id="form">
+    <input type="text" name="title" id="title"/><br/>
+    <input type="file" name="photo[]" id="photo"/><br/>
+    <input type="file" name="photo[]" id="photo1"/><br/>
+    <p id="box" style="display: none">
+        预览
+    </p>
+    <p id="box1" style="display: none">
+        预览
+    </p>
+    <textarea name="message" id="message"></textarea><br/>
+    <input type="button" id="btn" value="发布留言"/>
+</form>
+<p class="waiting" style="display: none;">正在加载中。。。</p>
+<script src="js/jquery-2.0.0.min.js"></script>
+<script>
+    $(function () {
+        $("#photo").on("change",function () {
+            console.log($(this).get(0).files[0]);
+            var fl=$(this).get(0).files[0];
+            var fileSize=fl.size/1024;
+            if(fileSize>500){
+                alert("大小不能超过500");
+                return false;
+            }
+            if(fl.type.indexOf("image")===-1){
+                alert("只能传图片格式的文件");
+                return false;
+            }
+            var url=window.URL.createObjectURL(fl)||window.webkitURL.createObjectURL(fl);
+            var objImg=document.createElement("img");
+            objImg.src=url;
+            objImg.onload=function () {
+                window.URL.revokeObjectURL(url);
+            };
+            $("#box").css("display","block").html(objImg);
+        });
+        $("#photo1").on("change",function () {
+            console.log($(this).get(0).files[0]);
+            var fl=$(this).get(0).files[0];
+            var fileSize=fl.size/1024;
+            if(fileSize>500){
+                alert("大小不能超过500");
+                return false;
+            }
+            if(fl.type.indexOf("image")===-1){
+                alert("只能传图片格式的文件");
+                return false;
+            }
+            var url=window.URL.createObjectURL(fl)||window.webkitURL.createObjectURL(fl);
+            var objImg=document.createElement("img");
+            objImg.src=url;
+            objImg.onload=function () {
+                window.URL.revokeObjectURL(url);
+            };
+            $("#box1").css("display","block").html(objImg);
+        });
+        $("#btn").on("click",function () {
+            var da = new FormData($('#form')[0]);
+            $.ajax({
+                type:"post",
+                url:"../php/index.php?c=Message&a=sendMessage",
+                dataType:"json",
+                data:da,
+                processData: false,
+                contentType: false,
+                beforeSend:function () {
+                    $(".waiting").css("display","block");
+                },
+                success:function (data) {
+                    $(".waiting").css("display","none");
+                    if(data.code=="403"){
+                        alert(data.message);
+                    }else if(data.code=="200"){
+                        alert(data.message);
+                        window.location.href="index.html";
+                    }
+                }
+            })
+        })
+    })
+</script>
+</body>
+</html>
